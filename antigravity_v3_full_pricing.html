@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AntiGravity — (주)백메가 상담 가속화 시스템 v3.0</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg:        #0b0f1e;
+    --surface:   #111827;
+    --card:      #1a2235;
+    --border:    rgba(233,69,96,0.18);
+    --accent:    #e94560;
+    --accent2:   #f5a623;
+    --teal:      #00bfa5;
+    --blue:      #2196f3;
+    --violet:    #7c4dff;
+    --orange:    #ff9800;
+    --text:      #e8eaf6;
+    --muted:     #90a4ae;
+    --dim:       #607d8b;
+    --font-ko:   'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font-ko);
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── 배경 파티클 ── */
+  #bg-canvas {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+
+  /* ══════════════════════════════════════
+     API KEY SCREEN
+  ══════════════════════════════════════ */
+  #api-screen {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 2rem; background: var(--bg);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  #api-screen.hide { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+
+  .splash-logo {
+    text-align: center; margin-bottom: 2rem;
+  }
+  .splash-logo .logo-name {
+    font-family: var(--font-mono);
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 700; letter-spacing: -2px;
+    background: linear-gradient(135deg, #e94560 0%, #f5a623 50%, #e94560 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: 200% center; } }
+
+  .splash-logo .logo-company {
+    font-size: 13px; color: var(--muted); letter-spacing: 3px; margin-top: 6px;
+    text-transform: uppercase;
+  }
+  .splash-logo .logo-version {
+    display: inline-block; margin-top: 10px; font-size: 10px;
+    padding: 3px 12px; border-radius: 20px;
+    background: rgba(0,191,165,0.1); border: 1px solid rgba(0,191,165,0.3);
+    color: var(--teal); letter-spacing: 1px;
+  }
+
+  .api-card {
+    width: 100%; max-width: 460px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 2.2rem;
+    box-shadow: 0 0 60px rgba(233,69,96,0.08);
+  }
+  .api-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .api-card p  { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 1.4rem; }
+
+  .inp-wrap { position: relative; margin-bottom: 1rem; }
+  .api-inp {
+    width: 100%; background: rgba(15,52,96,0.4);
+    border: 1px solid rgba(233,69,96,0.25); border-radius: 12px;
+    padding: 13px 46px 13px 16px; font-size: 13px; color: var(--text);
+    font-family: var(--font-mono); letter-spacing: 1px;
+    outline: none; transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .api-inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(233,69,96,0.12); }
+  .eye-btn {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px;
+    transition: color 0.2s;
+  }
+  .eye-btn:hover { color: var(--accent); }
+
+  .err-msg {
+    font-size: 11.5px; color: var(--accent); padding: 7px 12px;
+    background: rgba(233,69,96,0.07); border: 1px solid rgba(233,69,96,0.2);
+    border-radius: 9px; margin-bottom: 10px; display: none;
+  }
+
+  .btn-launch {
+    width: 100%; background: linear-gradient(135deg, #e94560, #c62828);
+    border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 600; color: white;
+    font-family: var(--font-ko); cursor: pointer;
+    transition: opacity 0.2s, transform 0.12s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(233,69,96,0.3);
+  }
+  .btn-launch:hover { opacity: 0.9; box-shadow: 0 6px 28px rgba(233,69,96,0.45); }
+  .btn-launch:active { transform: scale(0.98); }
+
+  .api-footer { font-size: 11px; color: var(--dim); margin-top: 10px; text-align: center; }
+  .api-footer a { color: var(--accent); text-decoration: none; }
+  .api-footer a:hover { text-decoration: underline; }
+
+  /* ══════════════════════════════════════
+     MAIN APP
+  ══════════════════════════════════════ */
+  #app {
+    position: fixed; inset: 0; z-index: 10;
+    display: none; flex-direction: row;
+    opacity: 0; transition: opacity 0.4s;
+  }
+  #app.visible { opacity: 1; }
+
+  /* ── 사이드바 ── */
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-logo {
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .sidebar-logo .name {
+    font-family: var(--font-mono); font-size: 17px; font-weight: 700;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .sidebar-logo .sub { font-size: 9.5px; color: var(--dim); margin-top: 3px; letter-spacing: 1px; }
+  .sidebar-logo .ver {
+    display: inline-block; margin-top: 6px; font-size: 9px;
+    padding: 2px 8px; border-radius: 10px;
+    background: rgba(0,191,165,0.1); border: 1px solid rgba(0,191,165,0.25);
+    color: var(--teal);
+  }
+
+  .sidebar-nav { flex: 1; padding: 10px 8px; overflow-y: auto; }
+
+  .nav-label {
+    font-size: 9px; color: var(--dim); letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 8px 8px 4px;
+  }
+
+  .nav-btn {
+    display: flex; align-items: center; gap: 9px;
+    width: 100%; padding: 9px 10px; border-radius: 10px;
+    border: 1px solid transparent; background: none; cursor: pointer;
+    font-family: var(--font-ko); font-size: 12.5px; color: var(--muted);
+    transition: all 0.18s; text-align: left; margin-bottom: 2px;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .nav-btn.active { background: rgba(233,69,96,0.1); color: var(--text); border-color: rgba(233,69,96,0.25); }
+  .nav-btn .nav-icon { font-size: 14px; flex-shrink: 0; }
+  .nav-btn .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-left: auto;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .nav-btn.active .nav-dot { opacity: 1; }
+  .nav-btn.c-script.active { background: rgba(233,69,96,0.1); border-color: rgba(233,69,96,0.25); }
+  .nav-btn.c-script .nav-dot { background: #e94560; }
+  .nav-btn.c-product.active { background: rgba(0,191,165,0.08); border-color: rgba(0,191,165,0.2); }
+  .nav-btn.c-product .nav-dot { background: #00bfa5; }
+  .nav-btn.c-price.active { background: rgba(33,150,243,0.08); border-color: rgba(33,150,243,0.2); }
+  .nav-btn.c-price .nav-dot { background: #2196f3; }
+  .nav-btn.c-strategy.active { background: rgba(245,166,35,0.08); border-color: rgba(245,166,35,0.2); }
+  .nav-btn.c-strategy .nav-dot { background: #f5a623; }
+  .nav-btn.c-mental.active { background: rgba(124,77,255,0.08); border-color: rgba(124,77,255,0.2); }
+  .nav-btn.c-mental .nav-dot { background: #7c4dff; }
+  .nav-btn.c-quiz.active { background: rgba(255,152,0,0.08); border-color: rgba(255,152,0,0.2); }
+  .nav-btn.c-quiz .nav-dot { background: #ff9800; }
+
+  .sidebar-footer {
+    padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .status-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; color: var(--dim);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--teal); box-shadow: 0 0 6px var(--teal);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .btn-keychg {
+    font-size: 10px; padding: 5px 10px; border-radius: 7px;
+    background: rgba(233,69,96,0.08); border: 1px solid rgba(233,69,96,0.2);
+    color: var(--accent); cursor: pointer; font-family: var(--font-ko);
+    transition: background 0.15s; text-align: center;
+  }
+  .btn-keychg:hover { background: rgba(233,69,96,0.16); }
+
+  /* ── 메인 채팅 영역 ── */
+  .main {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;
+  }
+
+  /* 헤더 */
+  .main-hdr {
+    padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(17,24,39,0.8); backdrop-filter: blur(10px);
+    flex-shrink: 0;
+  }
+  .agent-info { display: flex; align-items: center; gap: 10px; }
+  .agent-avatar {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .agent-name { font-size: 13.5px; font-weight: 600; }
+  .agent-desc { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+
+  /* 퀵 프롬프트 */
+  .quick-bar {
+    padding: 7px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; gap: 5px; overflow-x: auto; flex-shrink: 0;
+    background: rgba(10,15,30,0.5);
+  }
+  .quick-bar::-webkit-scrollbar { height: 2px; }
+  .quick-bar::-webkit-scrollbar-track { background: transparent; }
+  .quick-bar::-webkit-scrollbar-thumb { background: rgba(233,69,96,0.3); border-radius: 1px; }
+  .qchip {
+    flex-shrink: 0; padding: 4px 11px; border-radius: 12px; font-size: 10.5px;
+    border: 1px solid rgba(255,255,255,0.08); color: var(--muted);
+    cursor: pointer; transition: all 0.13s; font-family: var(--font-ko);
+    white-space: nowrap; background: rgba(255,255,255,0.02);
+  }
+  .qchip:hover { border-color: var(--accent); color: var(--accent); background: rgba(233,69,96,0.05); }
+
+  /* 채팅 */
+  .chat-area {
+    flex: 1; overflow-y: auto; padding: 16px 14px;
+    display: flex; flex-direction: column; gap: 14px;
+    scroll-behavior: smooth;
+  }
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: rgba(233,69,96,0.2); border-radius: 2px; }
+
+  /* 웰컴 */
+  .welcome {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 30px 20px; text-align: center;
+    animation: fadeUp 0.4s ease;
+  }
+  .welcome-icon { font-size: 40px; margin-bottom: 12px; }
+  .welcome h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .welcome p { font-size: 12px; color: var(--muted); line-height: 1.7; max-width: 420px; }
+  .welcome-tags {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 14px 0;
+  }
+  .wtag {
+    font-size: 10px; padding: 3px 10px; border-radius: 20px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+    color: var(--muted);
+  }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 500px; }
+  .qg-card {
+    padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.02); text-align: left;
+    cursor: pointer; transition: all 0.15s; font-family: var(--font-ko);
+  }
+  .qg-card:hover { border-color: rgba(233,69,96,0.3); background: rgba(233,69,96,0.04); transform: translateY(-1px); }
+  .qg-icon { font-size: 18px; margin-bottom: 5px; }
+  .qg-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .qg-desc { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+  /* 메시지 */
+  .msg { display: flex; gap: 9px; animation: fadeUp 0.22s ease; }
+  .msg.user { flex-direction: row-reverse; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  .av {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .av-ai { background: linear-gradient(135deg, #e94560, #9c27b0); }
+  .av-user { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); color: var(--muted); }
+
+  .bubble {
+    max-width: 78%; padding: 10px 14px; border-radius: 14px;
+    font-size: 13px; line-height: 1.72;
+  }
+  .bubble-ai {
+    background: var(--card); border: 1px solid rgba(233,69,96,0.12);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble-user {
+    background: linear-gradient(135deg, rgba(233,69,96,0.18), rgba(156,39,176,0.13));
+    border: 1px solid rgba(233,69,96,0.22); border-bottom-right-radius: 4px;
+  }
+  .bubble strong { color: var(--accent); }
+  .bubble br { line-height: 1.8; }
+
+  .atag {
+    display: inline-block; font-size: 9.5px; padding: 2px 8px;
+    border-radius: 8px; margin-bottom: 5px; font-weight: 600; letter-spacing: 0.3px;
+  }
+  .t-script   { background:rgba(233,69,96,0.12);  color:#e94560; border:1px solid rgba(233,69,96,0.28); }
+  .t-product  { background:rgba(0,191,165,0.1);   color:#00bfa5; border:1px solid rgba(0,191,165,0.28); }
+  .t-price    { background:rgba(33,150,243,0.1);  color:#2196f3; border:1px solid rgba(33,150,243,0.28); }
+  .t-strategy { background:rgba(245,166,35,0.1);  color:#f5a623; border:1px solid rgba(245,166,35,0.28); }
+  .t-mental   { background:rgba(124,77,255,0.1);  color:#7c4dff; border:1px solid rgba(124,77,255,0.28); }
+  .t-quiz     { background:rgba(255,152,0,0.1);   color:#ff9800; border:1px solid rgba(255,152,0,0.28); }
+
+  .typing-dots { display:flex; gap:4px; align-items:center; padding:4px 0; }
+  .typing-dots span {
+    width:6px; height:6px; border-radius:50%; background:var(--accent); opacity:0.4;
+    animation:tdot 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay:0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes tdot { 0%,60%,100%{transform:none;opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
+
+  .fb-row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .fb-btn {
+    font-size:10px; padding:3px 9px; border-radius:8px;
+    border:1px solid rgba(255,255,255,0.09); color:var(--muted);
+    background:none; cursor:pointer; font-family:var(--font-ko); transition:all 0.13s;
+  }
+  .fb-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* 입력창 */
+  .input-area {
+    padding: 10px 14px 14px; border-top: 1px solid rgba(255,255,255,0.05);
+    background: rgba(10,15,30,0.7); backdrop-filter: blur(10px); flex-shrink: 0;
+  }
+  .input-row { display:flex; gap:8px; align-items:flex-end; }
+  .chat-inp {
+    flex:1; background:rgba(15,52,96,0.3);
+    border:1px solid rgba(233,69,96,0.18); border-radius:12px;
+    padding:10px 14px; font-size:13px; color:var(--text);
+    outline:none; resize:none; font-family:var(--font-ko);
+    line-height:1.55; max-height:100px; transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .chat-inp:focus { border-color:rgba(233,69,96,0.45); box-shadow:0 0 0 3px rgba(233,69,96,0.08); }
+  .chat-inp::placeholder { color:rgba(144,164,174,0.38); }
+  .send-btn {
+    width:40px; height:40px; border-radius:11px; flex-shrink:0;
+    background:linear-gradient(135deg,#e94560,#c62828);
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-size:16px; transition:opacity 0.2s, transform 0.12s, box-shadow 0.2s;
+    box-shadow:0 3px 14px rgba(233,69,96,0.35);
+  }
+  .send-btn:hover { opacity:0.88; box-shadow:0 5px 20px rgba(233,69,96,0.5); }
+  .send-btn:active { transform:scale(0.95); }
+  .send-btn:disabled { opacity:0.28; cursor:not-allowed; box-shadow:none; }
+  .inp-hint { font-size:9.5px; color:rgba(96,125,139,0.38); margin-top:5px; text-align:right; }
+
+  .err-inline {
+    font-size:11.5px; color:var(--accent); padding:7px 12px;
+    background:rgba(233,69,96,0.07); border:1px solid rgba(233,69,96,0.18);
+    border-radius:9px; margin:0;
+  }
+
+  /* 반응형 */
+  @media (max-width: 640px) {
+    .sidebar { width: 56px; }
+    .sidebar-logo .sub, .sidebar-logo .ver, .nav-btn span:not(.nav-icon), .nav-label, .sidebar-footer .status-row span, .btn-keychg { display: none; }
+    .nav-btn { justify-content: center; padding: 10px; }
+    .sidebar-logo { padding: 14px 10px; text-align: center; }
+    .sidebar-logo .name { font-size: 10px; }
+    .quick-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 배경 캔버스 -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- ════════════════════════════════════
+     API KEY 화면
+════════════════════════════════════ -->
+<div id="api-screen">
+  <div class="splash-logo">
+    <div class="logo-name">AntiGravity</div>
+    <div class="logo-company">(주)백메가 상담 가속화 시스템</div>
+    <div class="logo-version">v3.0 · 교육자료 Ch.1~11 + 2026.04 요금표 완전 내장</div>
+  </div>
+
+  <div class="api-card">
+    <h2>Gemini API 키 입력</h2>
+    <p>
+      SK·KT·LG·스카이·헬로비전 <strong style="color:var(--teal)">2026.04.20 최신 요금표</strong>와
+      교육자료 Ch.1~11(결합상품·복지할인·USIM·eSIM·OSS·환수규정·설치비)이 모두 탑재된 최신 버전입니다.<br><br>
+      Google Gemini API 키를 입력하면 시작됩니다.
+    </p>
+    <div class="err-msg" id="err-msg"></div>
+    <div class="inp-wrap">
+      <input id="key-inp" class="api-inp" type="password" placeholder="AIza..." autocomplete="off" />
+      <button class="eye-btn" onclick="toggleVis()" title="비밀번호 표시/숨김">👁</button>
+    </div>
+    <button class="btn-launch" onclick="startApp()">⚡ 시스템 시작</button>
+    <p class="api-footer">
+      API 키가 없으신가요?
+      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 무료로 발급받으세요.
+    </p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     메인 앱
+════════════════════════════════════ -->
+<div id="app">
+
+  <!-- 사이드바 -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="name">AntiGravity</div>
+      <div class="sub">(주)백메가 · 교육 AI</div>
+      <div class="ver">v3.0 · 2026.04 요금표</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">에이전트 선택</div>
+      <button class="nav-btn c-script active" onclick="setAgent('script',this)">
+        <span class="nav-icon">📝</span>
+        <span>Script_Master</span>
+        <span class="nav-dot"></span>
+      </button>
+      <button class="nav-btn c-product" onclick="setAgent('product',this)">
+        <span class="nav-icon">📦</span>
+        <span>Product_Tutor</span>
+        <span class="nav-dot"></span>
+      </button>
+      <button class="nav-btn c-price" onclick="setAgent('price',this)">
+        <span class="nav-icon">💰</span>
+        <span>요금 계산기</span>
+        <span class="nav-dot"></span>
+      </button>
+      <button class="nav-btn c-strategy" onclick="setAgent('strategy',this)">
+        <span class="nav-icon">🎯</span>
+        <span>Strategy_Coach</span>
+        <span class="nav-dot"></span>
+      </button>
+      <button class="nav-btn c-mental" onclick="setAgent('mental',this)">
+        <span class="nav-icon">🧘</span>
+        <span>Mental_Coach</span>
+        <span class="nav-dot"></span>
+      </button>
+      <button class="nav-btn c-quiz" onclick="setAgent('quiz',this)">
+        <span class="nav-icon">📋</span>
+        <span>퀴즈 테스트</span>
+        <span class="nav-dot"></span>
+      </button>
+
+      <div class="nav-label" style="margin-top:10px">바로가기</div>
+      <button class="nav-btn" onclick="openLink('https://100mega.kr')">
+        <span class="nav-icon">🌐</span>
+        <span>백메가 홈페이지</span>
+      </button>
+      <button class="nav-btn" onclick="openLink('https://www.100mb.kr/bbs/board.php?bo_table=wiki')">
+        <span class="nav-icon">📖</span>
+        <span>백메가 위키</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-row">
+        <div class="status-dot"></div>
+        <span>Gemini 연결됨</span>
+      </div>
+      <div class="btn-keychg" onclick="resetApp()">🔑 API 키 변경</div>
+    </div>
+  </aside>
+
+  <!-- 메인 -->
+  <main class="main">
+    <!-- 헤더 -->
+    <div class="main-hdr">
+      <div class="agent-info">
+        <div class="agent-avatar" id="hdr-avatar">📝</div>
+        <div>
+          <div class="agent-name" id="hdr-name">Script_Master</div>
+          <div class="agent-desc" id="hdr-desc">상담 시나리오 · 클로징 · 거절 처리 전문가</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 퀵 프롬프트 -->
+    <div class="quick-bar" id="quick-bar"></div>
+
+    <!-- 채팅 영역 -->
+    <div class="chat-area" id="chat-area">
+      <div class="welcome" id="welcome-msg">
+        <div class="welcome-icon">⚡</div>
+        <h2>백메가 임직원 교육 포털</h2>
+        <p>
+          2026년 4월 기준 <strong style="color:var(--teal)">SK · KT · LG · 스카이 · 헬로비전</strong> 요금표와<br>
+          교육자료 Ch.1~11이 완전 내장되어 있습니다.<br>
+          왼쪽 에이전트를 선택하거나 아래 카드를 클릭해 바로 시작하세요.
+        </p>
+        <div class="welcome-tags">
+          <span class="wtag">SK 요즘가족결합</span>
+          <span class="wtag">KT 총액결합</span>
+          <span class="wtag">LG 참쉬운/투게더</span>
+          <span class="wtag">복지할인 계산</span>
+          <span class="wtag">eSIM/USIM</span>
+          <span class="wtag">OSS 원스톱</span>
+          <span class="wtag">환수규정</span>
+          <span class="wtag">설치비</span>
+        </div>
+        <div class="quick-grid">
+          <div class="qg-card" onclick="quickAsk('거절하는 고객에게 어떻게 대응하나요? 공감형 스크립트 알려주세요')">
+            <div class="qg-icon">📝</div>
+            <div class="qg-name">Script_Master</div>
+            <div class="qg-desc">거절 처리 · 클로징 · 상담 시나리오</div>
+          </div>
+          <div class="qg-card" onclick="quickAsk('SK 요즘가족결합 1G+ALL TV 총 요금이 얼마예요?')">
+            <div class="qg-icon">💰</div>
+            <div class="qg-name">요금 계산기</div>
+            <div class="qg-desc">SK · KT · LG 실시간 요금 조회</div>
+          </div>
+          <div class="qg-card" onclick="quickAsk('KT와 LG 1기가 인터넷 결합상품을 비교해주세요')">
+            <div class="qg-icon">📦</div>
+            <div class="qg-name">Product_Tutor</div>
+            <div class="qg-desc">상품 설명 · 결합 조건 · 복지할인</div>
+          </div>
+          <div class="qg-card" onclick="quickAsk('오늘 너무 힘든 상담이 많았어요. 멘탈을 다잡는 방법이 있을까요?')">
+            <div class="qg-icon">🧘</div>
+            <div class="qg-name">Mental_Coach</div>
+            <div class="qg-desc">멘탈케어 · 감정노동 · 번아웃 예방</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 입력 -->
+    <div class="input-area">
+      <div class="input-row">
+        <textarea id="chat-inp" class="chat-inp" placeholder="요금 문의, 상담 스크립트, 상품 설명, 복지할인 계산 등 무엇이든 질문하세요..." rows="1"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMsg()" title="전송 (Enter)">➤</button>
+      </div>
+      <div class="inp-hint">Enter 전송 · Shift+Enter 줄바꿈 · 2026.04 요금표 기반 답변</div>
+    </div>
+  </main>
+
+</div>
+
+<!-- ════════════════════════════════════
+     JavaScript
+════════════════════════════════════ -->
+<script>
+/* ─── 지식 베이스 ─── */
+const KNOWLEDGE = \`
+=== (주)백메가 교육자료 Ch.1~11 핵심 요약 ===
+
+[Ch.1 회사 소개]
+백메가: 인터넷 영업점(통신직구, 인터넷초이스 등)의 가입정보를 받아 통신사 본사로 전달하는 코드점(직영점) 역할의 매개체. 연매출 1080억(2025년). 팀 구성: 접수팀, 마케팅팀, 운영지원팀, 백메가상담팀(대표번호 1544-5823), 세컨드파티팀(통신직구1팀, 인터넷초이스, INT통신, 통신직구4팀, 통신직구5팀). 홈페이지: https://100mega.kr
+
+[Ch.2 상품 종류]
+집전화(국선전화): 정전에도 사용가능, 지역번호(02,031 등), 가정·소규모사업장.
+인터넷전화(070): 인터넷망 기반, 정전시 불가, 가정·해외·스타트업.
+센트릭스(Centrex): 기업·관공서용 내선전화 시스템.
+MTA(SK), CPG(LG): 인터넷전화를 유선전화기에 연결하는 모뎀. LG는 국선전화 없음.
+인터넷+IPTV+공유기: 메인상품. IPTV=셋탑박스 방식(실시간방송), 케이블=셋탑박스 없음.
+USIM+ESIM: 기기 그대로, 통신사만 변경. 반드시 인터넷과 동판(동시판매) 필수. 신규번호 불가, 번호이동(MNP)만 가능.
+
+[Ch.3 팀 구성]
+상담팀: 백메가상담팀 + 세컨드파티팀 (인·아웃바운드 병행). 교육자료는 상담직 전용.
+
+[Ch.4 SK 결합상품]
+SK = SKB(SK브로드밴드, 106) + SKT(SK텔레콤, 1600-2000)로 나뉨. 수수료, 패밀리결합, 신용심사, 제휴카드 이유로 구분.
+핵심 규칙:
+1. 인터넷 개통 후 30일 이내에만 휴대폰 결합 가능 (이후 불가)
+2. 인터넷 명의자의 휴대폰이 있어야 가족도 결합 가능
+3. 동일명의 모바일 1회선만 결합 가능
+4. 구형결합(온가족무료, 25/08/31 이전 온가족할인) = 절대 건드리면 안됨 (해지시 결합도 해지)
+
+구형 결합(SKT 전용):
+- 온가족무료(온무): 2010.9.16출시, 2016.8.1 신규중단. SKT 회선수에 따라 유선 기본료 할인.
+- 온가족플랜(온플): 2016.8.1출시, 2022.10.8 신규중단. SKT+SKB 모두 가능. 회선수 기준 인터넷+휴대폰 기본료 할인.
+- 온가족프리(온프리): 2012.9.6출시, 2022.10.8 신규중단. 1회선만 결합시 정액할인(1인가구 유리), 약 4,400원.
+- 한가족할인: 2013.7.17출시, 2022.10.8 신규중단. SKT 전용, LTE밴드데이터3.5이상(월62,000원이상), 100M인터넷만 결합, 최대 8,800원 할인.
+- 온가족할인(온할): B,T 모두 가능. 25/08/31 이전: 합산연수에 따라 휴대폰30%+인터넷50% 할인. 25/08/31 이후 대폭 축소(인터넷 실사용 3년이상 시에만 기존 동일 할인율).
+
+현재 결합:
+- 요즘우리집결합(요우결): 휴대폰 결합 없음, 홈상품끼리 결합.
+- 요즘가족결합(요가결): 휴대폰 결합 있음. SKT=가족관계증명서로 백메가에서 직접 결합. SKB=본인명의 1회선만, 2회선부터 예약건 접수 후 106번 서류제출.
+- 패밀리결합: 인터넷끼리 1:1 결합. SKT=본인명의+모회선 가족일 경우 생년월일+이름+번호로 결합. SKB=본인명의만, 가족일 경우 106번 서류제출.
+- 온가족할인: SKT=가족관계증명서로 직접결합. SKB=설치후 고객이 106번 직접 결합.
+
+[Ch.5 LG 결합상품]
+특징: 내 명의 휴대폰 없어도 직계존비속이면 결합 가능. LG 공유기 무조건 설치 필수(정전시 위약금 산정). LG 국선전화 없음.
+구형결합:
+- 한방에yo(한방요): 인터넷+휴대폰 결합 시 모바일 요금 할인 (최대 8,800원)
+- 한방에home(한방홈): 회선수+요금제에 따라 인터넷 요금 면제
+- 가족무한사랑(가무사): 한방요+한방홈 폐지 후 생성. 인터넷+모바일 동시 할인. LG 역대급 결합.
+가끼모 유의: 기존 회선이 참쉬운결합/투게더결합이면 가끼모 할인 불가. 한방요/한방홈/가무사/홈결합이면 가능.
+현재: 참쉬운가족결합, 투게더결합.
+
+[Ch.6 KT 결합상품]
+한국 전체 인터넷 가입자 약 45%. KT만 설치 가능한 지역 많음(시골, 섬 등). 국선전화 유명(LG는 국선전화 없음).
+구형결합:
+- 정률형결합(구,기본료할인형): 인터넷1+휴대폰5회선까지, 모바일 10~50% 기본료 할인. 5회선 다 결합시 건드리면 안됨.
+- 인터넷뭉치면올레(인뭉올): 모바일 결합 회선수에 따라 인터넷 요금 무료.
+- LTE뭉치면올레(엘뭉올1,2): 엘뭉올1=인터넷+모바일 할인, 엘뭉올2=모바일 요금할인에 집중.
+집전화: TV포함 결합시 기존 1,100원→현재 4,400원. TV없으면 4,400원.
+
+[Ch.7 유심동판(유무선 동시판매)]
+백메가 = 선택약정만 가능 (기기 판매 안함). 이통사지원금 받은 고객은 2년내 선택약정 불가 → 공기계 필요.
+선택약정: 요금제 기본료 25% 매월 할인, 12/24개월 약정, 고가요금제에 유리.
+이통사지원금: 단말기 기기값 즉시할인, 2년내 동일통신사 기변도 보조금 반환.
+통신사별 수수료 지급 회선수:
+- KT: 대표자 포함 3회선 (가족추가 수수료 대표자와 다름, 인단독 유심 1회선만)
+- SKT: 대표자 포함 가족 4회선 (동거인 결합가능하나 수수료 불가)
+- SKB: 대표자 포함 5회선
+- LG: 대표자 포함 5회선 (가족아닐경우 수수료 불가, 소호/인단독 유심판매 불가)
+
+[Ch.8 복지할인]
+무선 복지할인:
+① 장애인/국가유공자: 기본료 35%할인, 할인금액 제한없음, 타통신사 포함 번호 1개만
+② 생계/의료급여 수급자: 최대 28,600원 할인 + 초과 음성/데이터 50%(최대 8,250원), 번호 1개만
+③ 주거/교육급여 수급자, 차상위계층: 12,100원 할인 후 추가 35%(최대 11,550원), 가구당 4인, 만6세이상
+④ 기초연금 수급자(만65세이상): 50%할인 (최대 12,100원), 번호 1개만
+계산 순서: SKT ①: 결합→복지35%→선택약정25% / ②: 복지28,600→선택약정→결합 / ③: 복지12,100→추가35%→선택약정→결합 / ④: 결합→선택약정→복지12,100
+교육청 할인 3종(환수 주의):
+1. 교육급여(보건복지부): 기초수급자, 전통신사 등록무방. SKB패널티
+2. 교육비지원(지자체): KT,LG등록불가(9개월뒤가능), SKT,SKB,LG가능
+3. 교육청,교육인적자원부(꿈나무/밀레니엄할인): KT만 등록불가, SKT/SKB/LG가능
+
+[Ch.9 USIM vs eSIM]
+USIM: 물리 칩, 대리점방문/배송, 모든 기기 가능, 수수료 7,700~8,800원
+eSIM: 내장 전자심, QR/수동으로 5분내 즉시개통, 최신폰만, 수수료 2,750원, WiFi필수, 현재 SKT+KT만 가능(LG,SKB 불가)
+*#06# → IMEI2+EID 있으면 eSIM 가능
+eSIM 개통 주의:
+1. 해지 전 카카오톡 친구추가 필수
+2. WiFi 연결 필수 (핫스팟 가능)
+3. KT는 블루투스 OFF
+4. eSIM 발급 전 물리유심 제거 금지
+5. 개통완료 후 카카오 보이스톡으로 절차 안내
+6. 고객이 먼저 다운로드 받으면 안됨
+7. 번호이동시 듀얼번호 소멸(가상번호이기 때문)
+삼성(안드로이드): 설정→연결→SIM카드 관리자→eSIM 추가
+아이폰(애플): 설정→셀룰러→eSIM 추가 또는 QR스캔
+
+[Ch.10 OSS(원스톱전환서비스)]
+A통신사→B통신사 이동 시 A통신사를 자동 해지해주는 서비스. MNP(번호이동)의 유선 버전.
+장점: 해지방어 우회, 고객 편의 증가
+주의:
+- 고객이 해지확인전화 반드시 본인 직접 수신 필수 (미수신시 처음부터 재접수)
+- 당일 전화 4번(본인확인+설치확인+해지확인+상담원통화)
+- 동일명의 2개 주소 동시 OSS 불가 (순차 진행)
+- 시간 지정 불가
+
+[Ch.11 필수 유지기간 & 환수]
+통신사가 도매점(백메가)에 수수료 지급 조건으로 필수 유지기간 요구.
+환수: 고객이 조기해지/편법재가입 시 받은 수수료 반환해야 함.
+해지된 상품: 민사소송 가능. 사용중인 상품: 민사소송 불가, 회사 마이너스 처리.
+→ 환수 발생하지 않도록 정확한 고객 탐색이 핵심.
+
+=== 2026년 4월 20일 기준 최신 요금표 ===
+
+[SK 요즘우리집결합(요우결) - SKB(106)/SKT(1600-2000)]
+단독: 100M=22,000원 / 500M=33,000원 / 1G=38,500원 (AP포함시 각 +1,100원)
+DPS(+일반전화): 100M=22,000 / 500M=31,900 / 1G=37,400
+DPS(+070전화/MTA만가능): 100M=22,000 / 500M=31,900 / 1G=37,400
+TV 기본요금: 이코노미9,900+셋탑4,400=14,300 / 스탠다드13,200+셋탑4,400=17,600 / ALL16,500+셋탑4,400=20,900
+스탠다드(넷플)25,500+셋탑4,400=29,900 / ALL(넷플)28,000+셋탑4,400=32,400 / ALL(넷플프리미엄)31,000+셋탑4,400=35,400
+추가TV셋탑: 이코노미6,050+2,200=8,250 / 스탠다드7,700+2,200=9,900 / ALL9,350+2,200=11,550
+대표 조합 요금(총요금, AP제외):
+100M+이코노미=34,100 / 500M+이코노미=41,800 / 1G+이코노미=47,300
+100M+스탠다드=37,400 / 500M+스탠다드=45,100 / 1G+스탠다드=50,600
+100M+ALL=40,700 / 500M+ALL=48,400 / 1G+ALL=53,900
+TPS(인터넷+이코노미+일반전화): 100M=35,200 / 500M=42,900 / 1G=48,400
+TPS(인터넷+스탠다드+일반전화): 100M=38,500 / 500M=46,200 / 1G=51,700
+TPS(인터넷+ALL+일반전화): 100M=41,800 / 500M=49,500 / 1G=55,000
+셋탑: 누구2(기가급+ALL이상4,400원)=6,600/3,300 / AI5임대형=7,700 / AI5케어형=5,500 / ATV(애플셋탑)=4,400 / 사운드맥스=8,800
+기가급+IPTV ALL이상 VOD쿠폰 3,300원(36개월간) 제공, 쿠폰유효기간62일
+번들할인: 기가계열TV포함=-5,500(ALL미만)/-2,200(ALL이상), 인터넷전화/시내전화별 추가할인
+
+[SK 요즘가족결합(요가결/유무선결합) - 알뜰한결합(SKB전용, 모바일할인없음)]
+단독: 100M=17,600 / 500M=22,000 / 1G=25,300 (AP+1,100원)
+DPS(+일반전화): 100M=18,700 / 500M=23,100 / 1G=26,400
+TV포함 조합:
+100M+이코노미=30,800 / 500M+이코노미=35,200 / 1G+이코노미=38,500
+100M+스탠다드=34,100 / 500M+스탠다드=38,500 / 1G+스탠다드=41,800
+100M+ALL=37,400 / 500M+ALL=41,800 / 1G+ALL=45,100
+요즘가족결합 휴대폰 할인(광랜기준): 1회선=-3,500 / 2회선=-7,000 / 3회선=-18,000
+4회선(광랜)=-18,000 / 4회선(기가)=-24,000 / 5회선(광랜)=-18,000 / 5회선(기가)=-24,000
+※이동전화 할인: 대표자지정/분할할인/몰아주기 가능
+※이동전화혜택: 모바일 BTV 데이터팩 무료(5,500원할인)/4인사용 1인데이터무료/모바일TV 전용데이터 일 1GB제공
+
+[SK 패밀리결합 - 자회선 개통 후 30일이내 결합]
+단독: 100M=16,500 / 500M=22,000 / 1G=27,500 (AP포함+1,100)
+DPS(+일반전화): 100M=17,600 / 500M=23,100 / 1G=28,600
+DPS(+070): 100M=17,600 / 500M=23,100 / 1G=28,600
+TV포함(스탠다드기준): 100M=34,100 / 500M=39,600 / 1G=45,100
+TPS(+일반전화+TV): 100M=35,200 / 500M=40,700 / 1G=46,200
+
+[SK 온가족할인(온할) - 25.08.31 이후 기준]
+인터넷사용연수/가족합산가입연수에 따라 할인율 차등:
+3년이상+30년이상=50%할인 / 3년이상+20-30년=30% / 3년이상+10-20년=20% / 3년이상+10년미만=10%
+2-3년+30년이상=30% / 2-3년+20-30년=20% / 2-3년+10-20년=10% / 2-3년+10년미만=5%
+1-2년+30년이상=20% / 1-2년+20-30년=10% / 1-2년+10-20년=5%
+1년미만+30년이상=10% / 1년미만+20-30년=5%
+요우결 인단독 기준에서 계산. 인터넷 실사용일수 기준. 모바일 할인율은 기존유지.
+예시 100M: 10%=19,800 / 20%=17,600 / 30%=15,400 / 50%=11,000원
+예시 500M: 10%=29,700 / 20%=26,400 / 30%=23,100 / 50%=16,500원
+예시 1G: 10%=34,650 / 20%=30,800 / 30%=26,950 / 50%=19,250원
+
+[SKB POP TV (106)]
+POP 요즘우리집결합: 100M+POP180=28,600 / 500M+POP180=36,300 / 1G+POP180=41,800
+100M+POP230=29,700 / 500M+POP230=37,400 / 1G+POP230=42,900
+POP 요즘가족결합: 100M+POP180=26,400 / 500M+POP180=30,800 / 1G+POP180=34,100
+POP SKB패밀리결합(T패밀리불가): 100M+POP180=25,300 / 500M+POP180=30,800 / 1G+POP180=36,300
+POP 온가족할인(1년미만10%): 100M+POP180=28,600 / 500M+POP180=38,500 / 1G+POP180=43,450
+POP 온가족할인(3년이상50%): 100M+POP180=19,800 / 500M+POP180=25,300 / 1G+POP180=28,050
+POP 추가TV: POP100=3,850+2,200=6,050 / POP180=5,500+1,100=6,600 / POP230=6,600
+POP설치가능권역: 서울(강서/광진/성동/노원/도봉/강북/동대문/서대문/종로/중구), 경기/인천(용인/이천/평택/수원/오산/화성/과천/안양/군포/광명/시흥/안산/인천남동/서/중/동/강화), 부산(강서/북/사상/남/수영/서/사하구), 대구(서/중/남/달서/달성), 서부(전주/완주 등), 중부(세종/천안/아산)
+
+[KT 홈결합/패밀리/총액결합/따살결/정액결합 (100)]
+단독: 슬림100M=22,000 / 베이직500M=33,000 / 에센스1G=38,500 (1G는 AP무료, 다른속도 AP+1,100)
+DPS(+일반전화): 슬림100M=28,050 / 베이직500M=36,850 / 에센스1G=42,350
+DPS(+070전화): 슬림100M=28,294 / 베이직500M=37,094 / 에센스1G=42,594
+TV포함: 슬림100M+TV=37,400 / 베이직500M+TV=42,900 / 에센스1G+TV=48,400
+TPS(+TV+일반전화): 슬림100M=43,450 / 베이직500M=48,950 / 에센스1G=54,450
+TPS(+TV+070): 슬림100M=43,694 / 베이직500M=49,194 / 에센스1G=54,694
+TV기본요금(기가지니A셋탑 3,300원 포함):
+베이직12,100+3,300=15,400 / 라이트13,200+3,300=16,500 / 에센스16,500+3,300=19,800
+에센스플러스18,700+3,300=22,000 / 지니TV모든G17,600+3,300=20,900
+지니TV디즈니+모든G21,500+3,300=24,800 / VOD플러스20,900+3,300=24,200
+티빙초이스스탠다드27,800+3,300=31,100 / 티빙초이스프리미엄31,300+3,300=34,600
+디즈니+초이스25,300+3,300=28,600 / 넷플릭스HD27,800+3,300=31,100 / 넷플릭스UHD31,300+3,300=34,600
+슈퍼팩초이스25,300+3,300=28,600 / 사장님초이스25,300+3,300=28,600
+추가TV셋탑: 베이직7,370+3,300=10,670 / 라이트7,920+3,300=11,220 / 에센스8,800+3,300=12,100
+셋탑임대료: 기가지니A=3,300 / 기가지니3=4,400 / 기가지니4(화이트/그린)=6,600 / 지니TV사운드바=8,800
+패밀리결합 인터넷할인: 단독100M=5,500 / 단독500M·1G=11,000 / 전화번들500M=8,800 / TV번들/TPS모든속도=5,500
+총액결합(100M): 22K미만=인터넷1,650 / 22K이상=3,300 / 64.9K이상=총8,800 / 108.9K이상=총19,800 / 141.9K이상=총24,200 / 174.9K이상=총28,600
+총액결합(500M이상): 22K미만=2,200 / 22K이상=5,500 / 64.9K이상=총11,000 / 108.9K이상=총22,110 / 141.9K이상=총27,610 / 174.9K이상=총33,110
+프리미엄가족결합(5G기준): 베이직80=20,000 / 초이스베이직90=22,500 / 스폐셜100=25,000 / 초이스스폐셜110=27,500 / 초이스프리미엄130=32,500
+※프리미엄 조건: LTE77/5G80이상 최소 2인 이상, 베이스회선 필수
+정액결합: 37K미만=인터넷0+모바일0 / 37K이상=인터넷5,500+모바일3,000 / 61K이상=모바일5,000 / 77K이상=모바일7,000
+따살결(따로살아도결합) 추가할인: 500M이상=2,200 / 1G이상=3,300 / TV베이직=2,200
+TM결합: 500M이상 단독5,500/전화번들3,300 인터넷추가할인(설치후본사TM요청)
+KT알뜰폰결합: 인터넷개통후익월말까지가능, 모바일할인없음. 단독100M인터넷할인=3,300/500·1G=11,000 / 전화번들=3,300/8,800 / TV번들/TPS=3,300/5,500
+인터넷와이드(구버디)=월1,650원 / 7D WIFI임대료=2,200원
+
+[KT 오피스넷 1588-0114 - 사업자용]
+단독: 슬림100M=30,800 / 베이직500M=44,000 / 에센스1G=49,500
+DPS(+일반전화): 슬림100M=36,850 / 베이직500M=47,850 / 에센스1G=53,350
+DPS(+070): 슬림100M=37,094 / 베이직500M=48,094 / 에센스1G=53,594
+TV포함: 슬림100M+TV=46,200 / 베이직500M+TV=53,900 / 에센스1G+TV=59,400
+고정IP부가서비스: 슬림100M=41,800 / 베이직500M=49,500 / 에센스1G=55,000 (회선당 최대3회선)
+부가서비스: 사장님장부비서3,850 / 링고비즈프리미엄5,500 / 통화매니저PC3,300 / AI통화비서19,800
+
+[LG 홈결합/참쉬운가족결합/투게더결합 (101)]
+홈결합 와이파이기본:
+단독: 100M=22,000 / 500M=33,000 / 1G=38,500
+DPS+CPG: 100M=25,300 / 500M=36,300 / 1G=41,800
+DPS+070: 100M=27,562 / 500M=38,562 / 1G=44,062
+TV포함: 100M+TV실속형=39,600 / 500M+TV실속형=45,100 / 1G+TV실속형=50,600
+TPS+CPG: 100M=42,900 / 500M=48,400 / 1G=53,900
+홈결합 프리미엄안심보상: 단독100M=27,500 / 500M=39,600 / 1G=45,100 / DPS+CPG 100M=30,800 / TV포함100M=45,100
+
+참쉬운가족결합 와이파이기본:
+단독: 100M=16,500 / 500M=23,100 / 1G=25,300
+DPS+CPG: 100M=19,800 / 500M=26,400 / 1G=28,600
+DPS+070: 100M=22,062 / 500M=28,662 / 1G=30,862
+TV포함: 100M+TV실속형=34,100 / 500M+TV실속형=35,200 / 1G+TV실속형=37,400
+TPS+CPG: 100M=37,400 / 500M=38,500 / 1G=40,700
+참쉬운 프리미엄안심보상: 단독100M=22,000 / 500M=29,700 / 1G=31,900
+
+투게더결합 와이파이기본(100M결합불가):
+단독: 500M=22,000 / 1G=27,500
+DPS+CPG: 500M=25,300 / 1G=30,800
+TV포함: 500M+TV실속형=34,100 / 1G+TV실속형=39,600
+TPS+CPG: 500M=37,400 / 1G=42,900
+투게더 프리미엄안심보상: 단독500M=28,600 / 1G=34,100
+
+TV기본요금: 실속형13,200+셋탑4,400=17,600 / 기본형14,300+셋탑4,400=18,700 / 프리미엄16,500+셋탑4,400=20,900
+프리미엄디즈니+스탠다드24,600+4,400=29,000 / 프리미엄넷플릭스HD27,800+4,400=32,200 / 프리미엄넷플릭스UHD31,300+4,400=35,700 / 프리미엄티빙29,600+4,400=34,000 / 프리미엄티빙플러스33,100+4,400=37,500
+추가TV: 실속형7,700 / 기본형8,250 / 프리미엄9,350
+셋탑임대료: 고급형/구글=3,300 / UHD4=4,400 / 사운드바1=6,600 / 사운드바2=8,800
+참쉬운가족결합 모바일할인(회선수별):
+1회선: 69K미만0/이상0/88K이상0 / 2회선: 2,200/3,300/4,400 / 3회선: 3,300/5,500/6,600 / 4~10회선: 4,400/6,600/8,800
+인터넷할인(참쉬운, 최대3회선): 100M=5,500 / 500M=9,900 / 1G=13,200
+투게더결합 모바일할인(85K이상 요금제만, 최대5회선):
+1회선=결합불가 / 2회선=10,000 / 3회선=14,000 / 4~5회선=20,000
+인터넷할인(투게더, 최대5회선): 500M=11,000 / 1G=11,000
+※투게더결합: 지인도가능하나 청구통합필수(결합구성원 요금을 대표자가 납부해야함)
+가끼모(패밀리결합): 신규개통5,500원할인(속도무관). 기존참쉬운/투게더=불가. 홈결합/한방요/한방홈/가무사=가능
+
+[LG 소호 홈결합/참쉬운/투게더 - 소호고객센터 1800-8300 / AS: 1544-8585]
+홈결합 와이파이기본 단독: 100M=22,000 / 500M=33,000 / 1G=38,500
+홈결합 안심보상 단독: 100M=25,300 / 500M=36,300 / 1G=42,900
+참쉬운 와이파이기본 단독: 100M=16,500 / 500M=23,100 / 1G=25,300
+참쉬운 안심보상 단독: 100M=19,800 / 500M=26,400 / 1G=29,700
+투게더(100M불가) 와이파이기본 단독: 500M=22,000 / 1G=27,500
+투게더 안심보상 단독: 500M=25,300 / 1G=31,900
+DPS+CPG(소호): 홈결합100M=24,200 / 참쉬운100M=18,700
+※소호 주의: 신분증마스킹불가+자동이체통장사본필수. 법인=사업자등록증+법인인감증명서+법인통장사본필수. 프리미엄2개월업셀불가. 디즈니+/넷플/티빙 법인불가.
+소호 에스원안심 CCTV: 3년약정13,200원/대, 설치비14,300원/대, 고화질Full HD200만화소, 클라우드저장15일.
+
+[LG 헬로비전 (1855-1000)]
+기본요금: 광랜라이트100M=20,790 / 광랜160M=27,610 / 기가라이트500M=31,460 / 플래티넘기가1G=33,000
+동등결합요금: 광랜160M=22,080 / 기가라이트500M=25,160 / 플래티넘기가1G=23,100
+TV포함기본: 광랜100M+이코노미UHD=29,530 / 광랜160M+이코노미UHD=35,360 / 기가500M+이코노미=38,390 / 기가1G+이코노미=39,600
+TV포함동등결합: 광랜160M+이코노미=29,840 / 기가500M+이코노미=32,090 / 기가1G+이코노미=29,700 / 기가1G+뉴베이직=31,900
+IPTV동등결합: 광랜160M+프로라이트=34,240 / 기가500M+프로라이트=36,490 / 기가1G+프로라이트=34,100 / 기가1G+프로맥스=36,300
+추가TV: 이코노미HD=5,500 / 뉴베이직HD=8,800 / 뉴베이직UHD=11,000
+IPTV추가TV: 프로라이트=10,450 / 프로맥스=12,650
+설치비: 인터넷단독=36,300(평일)/45,375(주말) / TV번들=56,100/70,125 / TV추가(동시/단독)=22,000
+동등결합 참쉬운가족할인: 2회선(69K미만2,200/이상3,300/88K이상4,400) / 3회선(3,300/5,500/6,600) / 4~10회선(4,400/6,600/8,800)
+동등결합KT케이블총액: 64.9K이상=광랜-3,300·기가-5,500 / 108.9K이상=-14,300·-16,610 / 141.9K이상=-18,700·-22,110 / 174.9K이상=-23,100·-27,610
+동등결합SK온가족케이블: 2회선=-5,500(데이터무제한1회선포함=-14,300) / 3회선=-16,500
+헬로비전설치가능지역: 서울(양천/은평구), 인천(부평/계양구), 경기(부천/김포/의정부/양주/포천/동두천/연천), 충남(서산/당진/홍성/예산/태안/청양), 대구(수성/동구), 부산(영도/동/중/부산진/금정/해운대/기장), 경남(창원/거제/통영/고성/김해/양산/밀양/창녕/거창/합천), 경북(안동/영주/문경/경주/경산/영천 등), 강원(강릉/동해/속초/원주/춘천 등), 전남(여수/순천/광양/목포 등), 전북(정읍/김제/남원/고창/부안 등)
+
+[SKY LIFE (1588-3002)]
+단독: 100MB=23,100 / 200MB=25,300 / 500MB=30,800 / 1G=36,300
+안드로이드TV: 100MB+SKYALL=29,700 / 100MB+SKY포인트=31,900 / 500MB+SKYALL=37,400 / 1G+SKYALL=42,900 / 1G+SKY포인트=45,100
+안드로이드TV 30%할인: 100MB+SKYALL=20,900 / 200MB+SKYALL=23,100
+기가지니A TV: 100MB+베이직=33,000 / 100MB+플러스=34,100 / 200MB+베이직=35,200 / 500MB+베이직=40,700 / 1G+베이직=46,200 / 1G+플러스=47,300
+기가지니A 30%할인: 100MB+베이직=24,200 / 100MB+플러스=25,300
+추가TV(안드): SKYALL=6,600(셋탑1,100포함) / TV단독(안드): SKYALL=13,200 / SKY포인트=15,400
+추가TV(기가지니A): 베이직7,700+셋탑1,650=9,350 / 플러스8,250+셋탑1,650=9,900
+설치비(평일): 인터넷단독=36,000(SKY) / TV번들=36,300(IPTV: 48,500) / TV추가=10,000
+※서울/수도권/부산 등 일부지역 IPTV방식가능, 그외 안테나설치. TV단독상품은 VOD다시보기불가.
+
+=== 환수규정(개통 후 필수 유지조건) ===
+KT·SKY: 개통후해지=9개월이후(실사용275일이상) / 해지후재가입=9개월이후 / 기존회선유지=275일이상 / 요금제하향=9개월이후
+LG: 개통후해지=1년이후(361일이상) / 해지후재가입=3개월이후(93일이후) / 기존회선유지=93일이상 / 요금제하향=9개월이후
+SKB: 개통후해지=1년이후(365일이상) / 해지후재가입=3개월이후 / 기존회선유지=1년이상 / 요금제하향=9개월이후
+SKT: 개통후해지=1년이후(365일이상) / 해지후재가입=4개월이후(해지월제외+3개월. 예:2월초해지→6월초청약) / 기존회선유지=1년이상 / 요금제하향=9개월이후
+LG헬로비전: 개통후해지=1년이후(365일이상) / 해지후재가입=3개월이후(해지월제외+2개월. 예:2월초해지→5월초청약) / 기존회선유지=9개월(271일이상) / 요금제하향=1년이후
+관측대상(공통): 유선명의자, 설치주소, 요금납부자, 결합구성원
+
+=== 설치비(신규·이전설치) ===
+KT: 인터넷단독=36,000(평일)/45,000(주말) / IPTV단독=34,100/42,625 / 일반전화DPS=68,000/86,000 / TV번들=56,200/71,250 / TPS=88,200/112,250 / 추가TV동시=15,400/19,250 / 추가TV단독=34,100/42,625 / 070전화추가단독=36,000/45,000
+SK: 인터넷단독=36,300(평일)/45,375(주말) / 일반전화DPS=44,000/51,700 / TV번들=56,100/70,125 / TPS=56,100/70,125 / 추가TV동시=17,600/22,000 / 추가TV단독=34,100/42,625 / 070전화추가단독=11,000/11,000 / 개통후AP추가=19,800
+LG: 인터넷단독=36,300(평일)/45,375(주말) / CPG전화DPS=36,300/45,375 / TV번들=56,100/70,125 / TPS=56,100/70,125 / 추가TV동시=22,000/27,500 / 추가TV단독=34,100/42,625 / 070전화추가단독=11,000 / 스마트홈IOT패키지=33,000
+AS출동비(공통): 고객과실=15,400원 / 통신사과실=무상 / 다음달 요금 합산청구
+야간기준(공통): 19시~익일09시(AS/신규개통 포함)
+\`;
+
+/* ─── 에이전트 설정 ─── */
+const AGENTS = {
+  script: {
+    icon: '📝', name: 'Script_Master', cls: 't-script',
+    color: '#e94560', navCls: 'c-script',
+    desc: '상담 시나리오 · 클로징 · 거절 처리 전문가',
+    chips: ['거절 처리 멘트', '신규가입 클로징 스크립트', '인터넷 해지 방어 멘트', '30대 1인가구 타겟 스크립트', '알뜰폰 전환 유도 멘트', '재약정 유도 스크립트', '가족결합 권유 멘트'],
+    sys: \`당신은 (주)백메가의 Script_Master입니다. 통신 영업 상담 시나리오, 클로징 멘트, 거절 처리 전문가입니다.
+아래 백메가 교육자료와 2026.04.20 최신 요금표를 완전히 숙지하고 있습니다:
+\${KNOWLEDGE}
+규칙:
+- 딱딱한 문어체 금지, 실전에서 바로 쓸 수 있는 자연스러운 구어체 사용
+- 상담 시나리오는 3가지 스타일(직설형, 공감형, 혜택강조형)로 제시
+- 질문은 한 번에 하나씩, 고객의 니즈를 짚어주는 멘트 포함
+- 거절 처리 시 고객 감정을 먼저 인정한 뒤 재접근
+- 요금 정보가 필요하면 위 요금표 데이터를 정확히 인용
+- 답변 마지막에 반드시 "이 정보가 업무의 무게를 줄여주었나요? ⚡" 추가\`
+  },
+  product: {
+    icon: '📦', name: 'Product_Tutor', cls: 't-product',
+    color: '#00bfa5', navCls: 'c-product',
+    desc: 'SK · KT · LG 상품 설명 · 결합조건 · 복지할인 전문가',
+    chips: ['SK vs KT vs LG 비교', '요즘가족결합 설명', 'KT 총액결합 계산', 'LG 참쉬운 vs 투게더 차이', '복지할인 종류와 계산', 'eSIM vs USIM 차이', 'OSS 원스톱 서비스 설명', 'POP TV 설치가능지역'],
+    sys: \`당신은 (주)백메가의 Product_Tutor입니다. 유무선 통신상품 전문가입니다.
+아래 백메가 교육자료와 2026.04.20 최신 요금표를 완전히 숙지하고 있습니다:
+\${KNOWLEDGE}
+규칙:
+- 요금표 기반 정확한 수치 제시 (정확하지않은 경우 "확인 필요" 명시)
+- 비교 설명 시 표나 리스트 형식 활용
+- 결합 조건, 필수 유지기간, 주의사항 함께 안내
+- 교육자료의 내용을 근거로 명확하게 설명
+- 답변 마지막에 반드시 "이 정보가 업무의 무게를 줄여주었나요? ⚡" 추가\`
+  },
+  price: {
+    icon: '💰', name: '요금 계산기', cls: 't-price',
+    color: '#2196f3', navCls: 'c-price',
+    desc: '2026.04 기준 SK · KT · LG 실시간 요금 조회 및 계산',
+    chips: ['SK 1G+ALL 총요금', 'KT 에센스1G+TV 요금', 'LG 참쉬운 500M 요금', 'SK 요즘가족결합 4회선 할인', 'KT 총액결합 계산', 'LG 투게더 3회선 할인', '헬로비전 동등결합 요금', '환수규정 날짜 계산'],
+    sys: \`당신은 (주)백메가의 요금 계산 전문가입니다. 2026년 4월 20일 기준 최신 요금표를 정확히 계산해 드립니다.
+아래 요금표 데이터를 완전히 숙지하고 있습니다:
+\${KNOWLEDGE}
+규칙:
+- 고객이 묻는 상품의 정확한 요금을 요금표에서 찾아 제시
+- 인터넷 기본료 + TV요금 + 셋탑임대료 + AP 등 구성요소별로 명확히 분리해서 설명
+- 결합 할인이 적용되면 할인 전/후 요금을 모두 제시
+- 환수규정, 설치비, 주의사항도 함께 안내
+- 요금표에 없는 조합이면 "요금표에 없는 조합입니다. 확인 필요"라고 명시
+- 계산 과정을 단계별로 보여줄 것
+- 답변 마지막에 반드시 "이 정보가 업무의 무게를 줄여주었나요? ⚡" 추가\`
+  },
+  strategy: {
+    icon: '🎯', name: 'Strategy_Coach', cls: 't-strategy',
+    color: '#f5a623', navCls: 'c-strategy',
+    desc: '실적 향상 전략 · 타겟 마케팅 · 클로징 기법 코칭',
+    chips: ['이번 달 실적 향상 전략', '유심동판 아웃바운드 전략', '40대 가족 타겟 전략', '클로징율 높이는 법', '신입 상담원 KPI 설정', '환수 예방 고객 탐색법', '경쟁사 대비 백메가 강점'],
+    sys: \`당신은 (주)백메가의 Strategy_Coach입니다. 통신 영업 전략 및 실적 향상 전문가입니다.
+아래 백메가 교육자료와 2026.04.20 최신 요금표를 완전히 숙지하고 있습니다:
+\${KNOWLEDGE}
+규칙:
+- 구체적 수치와 즉시 실행 가능한 액션 위주, 이론 배제
+- 가치(Benefit)를 가격(Price)보다 앞에 배치
+- 손실 회피 심리(Loss Aversion) 활용
+- 왜 백메가인가? 왜 지금인가? (Urgency) 명확히 제시
+- 경험 수준(신입/경력)에 맞춰 조언
+- 답변 마지막에 반드시 "이 정보가 업무의 무게를 줄여주었나요? ⚡" 추가\`
+  },
+  mental: {
+    icon: '🧘', name: 'Mental_Coach', cls: 't-mental',
+    color: '#7c4dff', navCls: 'c-mental',
+    desc: '멘탈 케어 · 감정 노동 완화 · 번아웃 예방 코치',
+    chips: ['3초 멘탈 리셋 방법', '화난 고객 응대 후 감정 회복', '번아웃 증상 체크', '자신감 회복하는 법', '팀내 갈등 해소법', '실적 압박 스트레스 관리', '긍정적 자기 대화법'],
+    sys: \`당신은 (주)백메가의 Mental_Coach입니다. 콜센터 상담원 멘탈 케어 및 소프트스킬 전문가입니다.
+백메가 통신 영업 상담원들의 감정 노동, 거절 반복, 실적 압박의 현실을 깊이 이해합니다.
+규칙:
+- 따뜻하고 공감적인 톤 유지, 성장과 효율 중심 언어 선택
+- 압박감을 주는 표현 금지
+- 즉시 사용 가능한 실전 기법 제공
+- 심각한 경우 전문 상담 권유
+- 3초 멘탈 리셋, 감정 회복 루틴, 번아웃 예방 등 구체적 기법 제시
+- 답변 마지막에 반드시 "이 정보가 업무의 무게를 줄여주었나요? ⚡" 추가\`
+  },
+  quiz: {
+    icon: '📋', name: '퀴즈 테스트', cls: 't-quiz',
+    color: '#ff9800', navCls: 'c-quiz',
+    desc: '교육자료 + 요금표 기반 실전 퀴즈 출제',
+    chips: ['SK 결합상품 퀴즈', 'KT 요금 계산 문제', 'LG 결합 OX 퀴즈', 'eSIM 체크리스트 퀴즈', '환수규정 날짜 문제', '복지할인 계산 문제', 'Chapter별 전체 복습'],
+    sys: \`당신은 (주)백메가 교육 퀴즈 출제자입니다. 교육자료와 2026.04 요금표를 바탕으로 실전 문제를 출제합니다.
+아래 교육자료와 요금표를 완전히 숙지하고 있습니다:
+\${KNOWLEDGE}
+규칙:
+- 4지선다형 또는 OX형 문제 출제
+- 요금 계산 문제도 출제 가능 (예: "SK 요즘가족결합 1G+스탠다드 TV 총 요금은?")
+- 한번에 1~2개 문제 출제 후 답변을 기다릴 가
+- 정답과 상세한 해설 제공 (요금표 근거 포함)
+- 틀렸을 때 격려의 말 포함, 왜 틀렸는지 친절하게 설명
+- 답변 마지막에 반드시 "이 정보가 업무의 무게를 줄여주었나요? ⚡" 추가\`
+  }
+};
+
+/* ─── 상태 ─── */
+let apiKey = '';
+let curAgent = 'script';
+let isLoading = false;
+
+/* ─── 배경 파티클 ─── */
+(function initCanvas() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  for (let i = 0; i < 55; i++) {
+    particles.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.5 + 0.3,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+      a: Math.random() * 0.4 + 0.06
+    });
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = \`rgba(233,69,96,\${p.a})\`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ─── API Key 화면 ─── */
+function toggleVis() {
+  const inp = document.getElementById('key-inp');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function startApp() {
+  const key = document.getElementById('key-inp').value.trim();
+  const errEl = document.getElementById('err-msg');
+  if (!key) {
+    errEl.textContent = 'API 키를 입력해주세요.';
+    errEl.style.display = 'block'; return;
+  }
+  if (!key.startsWith('AIza')) {
+    errEl.textContent = 'Gemini API 키는 "AIza"로 시작합니다. 확인해주세요.';
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+  apiKey = key;
+  document.getElementById('api-screen').classList.add('hide');
+  setTimeout(() => {
+    document.getElementById('api-screen').style.display = 'none';
+    const app = document.getElementById('app');
+    app.style.display = 'flex';
+    requestAnimationFrame(() => app.classList.add('visible'));
+    renderQuickBar();
+  }, 400);
+}
+
+function resetApp() {
+  apiKey = '';
+  document.getElementById('app').classList.remove('visible');
+  setTimeout(() => {
+    document.getElementById('app').style.display = 'none';
+    const api = document.getElementById('api-screen');
+    api.style.display = 'flex';
+    api.classList.remove('hide');
+    document.getElementById('key-inp').value = '';
+  }, 300);
+}
+
+/* ─── 에이전트 전환 ─── */
+function setAgent(ag, btnEl) {
+  curAgent = ag;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+  const cfg = AGENTS[ag];
+  document.getElementById('hdr-avatar').textContent = cfg.icon;
+  document.getElementById('hdr-name').textContent = cfg.name;
+  document.getElementById('hdr-desc').textContent = cfg.desc;
+  renderQuickBar();
+}
+
+function renderQuickBar() {
+  const bar = document.getElementById('quick-bar');
+  bar.innerHTML = AGENTS[curAgent].chips
+    .map(c => \`<div class="qchip" onclick="quickAsk('\${c.replace(/'/g,"\\\\'")}')"> \${c}</div>\`)
+    .join('');
+}
+
+function quickAsk(txt) {
+  document.getElementById('chat-inp').value = txt;
+  sendMsg();
+}
+
+function openLink(url) {
+  window.open(url, '_blank', 'noopener');
+}
+
+/* ─── 채팅 ─── */
+function addMsg(role, content) {
+  const area = document.getElementById('chat-area');
+  const welcome = document.getElementById('welcome-msg');
+  if (welcome) welcome.remove();
+  const cfg = AGENTS[curAgent];
+  const div = document.createElement('div');
+  div.className = \`msg \${role}\`;
+  if (role === 'ai') {
+    const fmt = content
+      .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
+      .replace(/\\n/g, '<br>');
+    div.innerHTML = \`
+      <div class="av av-ai">AG</div>
+      <div class="bubble bubble-ai">
+        <span class="atag \${cfg.cls}">\${cfg.icon} \${cfg.name}</span><br>
+        \${fmt}
+        <div class="fb-row">
+          <button class="fb-btn" onclick="this.textContent='👍 도움됐어요!';this.style.color='#00bfa5';this.style.borderColor='#00bfa5'">도움됐어요</button>
+          <button class="fb-btn" onclick="quickAsk('더 자세히 설명해주세요')">더 알고 싶어요 ↗</button>
+          <button class="fb-btn" onclick="quickAsk('다른 예시를 들어주세요')">다른 예시 ↗</button>
+        </div>
+      </div>\`;
+  } else {
+    div.innerHTML = \`
+      <div class="bubble bubble-user">\${content}</div>
+      <div class="av av-user">나</div>\`;
+  }
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function addTyping() {
+  const area = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typing-msg';
+  div.innerHTML = \`
+    <div class="av av-ai">AG</div>
+    <div class="bubble bubble-ai">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>\`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-msg');
+  if (t) t.remove();
+}
+
+async function sendMsg() {
+  const inp = document.getElementById('chat-inp');
+  const btn = document.getElementById('send-btn');
+  const txt = inp.value.trim();
+  if (!txt || isLoading) return;
+  isLoading = true;
+  btn.disabled = true;
+  addMsg('user', txt);
+  inp.value = '';
+  inp.style.height = 'auto';
+  addTyping();
+  const cfg = AGENTS[curAgent];
+  try {
+    const res = await fetch(
+      \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\${apiKey}\`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: cfg.sys }] },
+          contents: [{ role: 'user', parts: [{ text: txt }] }],
+          generationConfig: { temperature: 0.75, maxOutputTokens: 2000 }
+        })
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || \`HTTP \${res.status}\`);
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했습니다.';
+    removeTyping();
+    addMsg('ai', reply);
+  } catch (err) {
+    removeTyping();
+    const area = document.getElementById('chat-area');
+    const errDiv = document.createElement('div');
+    errDiv.className = 'err-inline';
+    errDiv.textContent = \`오류: \${err.message} — API 키 또는 네트워크를 확인해주세요.\`;
+    area.appendChild(errDiv);
+    area.scrollTop = area.scrollHeight;
+  } finally {
+    isLoading = false;
+    btn.disabled = false;
+    inp.focus();
+  }
+}
+
+/* ─── 입력창 자동 높이 ─── */
+document.getElementById('chat-inp').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+/* ─── Enter키 API 화면 ─── */
+document.getElementById('key-inp').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') startApp();
+});
+</script>
+</body>
+</html>
